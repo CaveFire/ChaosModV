@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Windows.Forms;
+using TwitchChatVotingProxy.VotingReceiver;
 
 // TODO: fix voting mode
 namespace TwitchChatVotingProxy.OverlayServer
@@ -19,13 +21,24 @@ namespace TwitchChatVotingProxy.OverlayServer
 
             try
             {
-                var WSS = new Fleck.WebSocketServer($"ws://0.0.0.0:{config.Port}");
+                var WSS = new Fleck.WebSocketServer("ws://0.0.0.0:9091");
                 // Set the websocket listeners
                 WSS.Start(connection =>
                 {
                     connection.OnOpen += () => OnWsConnectionOpen(connection);
                     connection.OnClose += () => OnWSConnectionClose(connection);
                 });
+
+                var process = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "chaosmod\\WebChaosMod.exe",
+                        UseShellExecute = true,
+                        CreateNoWindow = false
+                    }
+                };
+                process.Start();
             } catch (Exception e)
             {
                 logger.Fatal(e, "failed so start websocket server");
@@ -53,7 +66,7 @@ namespace TwitchChatVotingProxy.OverlayServer
         /// Broadcasts a message to all socket clients
         /// </summary>
         /// <param name="message">Message which should be broadcast</param>
-        private void Broadcast(string message)
+        public void Broadcast(string message)
         {
             connections.ForEach(connection =>
             {
@@ -87,6 +100,18 @@ namespace TwitchChatVotingProxy.OverlayServer
             {
                 logger.Information($"new websocket client {connection.ConnectionInfo.ClientIpAddress}");
                 connections.Add(connection);
+
+                connection.OnMessage += (message) =>
+                {
+                    logger.Information("received input from wss:  " + message);
+                    if (message.Contains(";"))
+                    {
+                        TwitchChatVotingProxy.votingReceiver.OnMessageReceived(message.Split(';')[0], message.Split(';')[1]);
+                    } else
+                    {
+                        MessageBox.Show(message);
+                    }
+                };
             } catch (Exception e)
             {
                 logger.Error(e, "error occurred as client connected");

@@ -11,6 +11,9 @@ namespace TwitchChatVotingProxy
     {
         private static ILogger logger;
 
+        public static TwitchVotingReceiver votingReceiver;
+        public static OverlayServer.OverlayServer overlayServer;
+
         private static void Main(string[] args)
         {
             if (args.Length < 1 || args[0] != "--startProxy")
@@ -62,19 +65,14 @@ namespace TwitchChatVotingProxy
                     return;
                 }
 
-                // Check if OBS overlay should be shown
-                OverlayServer.OverlayServer overlayServer = null;
-                if (config.OverlayMode == EOverlayMode.OVERLAY_OBS)
-                {
-                    // Create overlay server config
-                    OverlayServerConfig overlayServerConfig = new OverlayServerConfig(votingMode, config.RetainInitalVotes, config.OverlayServerPort);
+                // Create overlay server config
+                OverlayServerConfig overlayServerConfig = new OverlayServerConfig(votingMode, config.RetainInitalVotes, config.OverlayServerPort);
 
-                    // Create component
-                    overlayServer = new OverlayServer.OverlayServer(overlayServerConfig);
-                }
+                // Create component
+                overlayServer = new OverlayServer.OverlayServer(overlayServerConfig);
 
                 // Create components
-                var votingReceiver = new TwitchVotingReceiver(twitchVotingReceiverConfig);
+                votingReceiver = new TwitchVotingReceiver(twitchVotingReceiverConfig);
                 var chaosPipe = new ChaosPipeClient();
 
                 // Start the chaos mod controller
